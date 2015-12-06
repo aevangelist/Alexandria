@@ -25,6 +25,7 @@ import android.widget.Toast;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
+import it.gmariotti.cardslib.library.view.component.CardThumbnailView;
 import it.jaschke.alexandria.data.AlexandriaContract;
 import it.jaschke.alexandria.services.BookService;
 import it.jaschke.alexandria.services.CaptureActivityAnyOrientation;
@@ -32,10 +33,13 @@ import it.jaschke.alexandria.services.DownloadImage;
 
 
 public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
+
     private static final String TAG = "INTENT_TO_SCAN_ACTIVITY";
     private EditText ean;
     private final int LOADER_ID = 1;
     private View rootView;
+    private CardThumbnailView card;
+
     private final String EAN_CONTENT="eanContent";
     private static final String SCAN_FORMAT = "scanFormat";
     private static final String SCAN_CONTENTS = "scanContents";
@@ -59,7 +63,11 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
     @Override
     public View onCreateView(final LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
+        final Context context = getActivity();
+
         rootView = inflater.inflate(R.layout.fragment_add_book, container, false);
+
+        card = (CardThumbnailView) rootView.findViewById(R.id.add_book_card);
         ean = (EditText) rootView.findViewById(R.id.ean);
 
         ean.addTextChangedListener(new TextWatcher() {
@@ -72,7 +80,7 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 //User has started typing - warn them that network unavailable
                 if(!isNetworkAvailable()){
-                    Context context = getActivity();
+                    //Context context = getActivity();
                     CharSequence text = "Network connection unavailable";
                     int duration = Toast.LENGTH_SHORT;
 
@@ -110,7 +118,7 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
             public void onClick(View v) {
 
                 if(!isNetworkAvailable()){
-                    Context context = getActivity();
+                    //Context context = getActivity();
                     CharSequence text = "Network connection unavailable";
                     int duration = Toast.LENGTH_SHORT;
 
@@ -143,6 +151,10 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
                 bookIntent.setAction(BookService.ADD_BOOK);
                 getActivity().startService(bookIntent);
                 AddBook.this.restartLoader();
+
+                //Display toast for confirmation
+                Toast.makeText(context, "Added to Library",
+                        Toast.LENGTH_LONG).show();
             }
         });
 
@@ -154,6 +166,10 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
                 bookIntent.setAction(BookService.DELETE_BOOK);
                 getActivity().startService(bookIntent);
                 ean.setText("");
+
+                //Don't display the card
+                card.setVisibility(View.INVISIBLE);
+
             }
         });
 
@@ -267,8 +283,8 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
         String categories = data.getString(data.getColumnIndex(AlexandriaContract.CategoryEntry.CATEGORY));
         ((TextView) rootView.findViewById(R.id.categories)).setText(categories);
 
-        rootView.findViewById(R.id.save_button).setVisibility(View.VISIBLE);
-        rootView.findViewById(R.id.delete_button).setVisibility(View.VISIBLE);
+        //Show the card
+        card.setVisibility(View.VISIBLE);
     }
 
     @Override

@@ -5,7 +5,7 @@ android {
     buildToolsVersion '22.0.0'
 
     defaultConfig {
-        applicationId "barqsoft.footballscores"
+        applicationId "it.jaschke.alexandria"
         minSdkVersion 21
         targetSdkVersion 21
         versionCode 1
