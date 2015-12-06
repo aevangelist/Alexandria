@@ -104,12 +104,14 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
 
                 Log.d("afterTextChanged", "Starting book intent");
 
-                //Once we have an ISBN, start a book intent
-                Intent bookIntent = new Intent(getActivity(), BookService.class);
-                bookIntent.putExtra(BookService.EAN, ean);
-                bookIntent.setAction(BookService.FETCH_BOOK);
-                getActivity().startService(bookIntent);
-                AddBook.this.restartLoader();
+                //Once we have an ISBN, start a book intent - only if there is network
+                if(isNetworkAvailable()){
+                    Intent bookIntent = new Intent(getActivity(), BookService.class);
+                    bookIntent.putExtra(BookService.EAN, ean);
+                    bookIntent.setAction(BookService.FETCH_BOOK);
+                    getActivity().startService(bookIntent);
+                    AddBook.this.restartLoader();
+                }
             }
         });
 
