@@ -17,6 +17,7 @@ import android.util.Patterns;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -32,7 +33,7 @@ import it.jaschke.alexandria.services.CaptureActivityAnyOrientation;
 import it.jaschke.alexandria.services.DownloadImage;
 
 
-public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
+public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>, View.OnClickListener {
 
     private static final String TAG = "INTENT_TO_SCAN_ACTIVITY";
     private EditText ean;
@@ -40,8 +41,11 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
     private View rootView;
     private CardThumbnailView card;
     private ImageView categoryIcon;
+    private Button scanButton;
     private TextView saveButton;
     private TextView deleteButton;
+
+    private Intent bookIntent;
 
     private final String EAN_CONTENT="eanContent";
     private static final String SCAN_FORMAT = "scanFormat";
@@ -57,10 +61,10 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
         if(ean!=null) {
             outState.putString(EAN_CONTENT, ean.getText().toString());
         }
+        super.onSaveInstanceState(outState);
     }
 
     @Override
@@ -70,10 +74,18 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
 
         rootView = inflater.inflate(R.layout.fragment_add_book, container, false);
 
-        card = (CardThumbnailView) rootView.findViewById(R.id.add_book_card);
-        categoryIcon = (ImageView) rootView.findViewById(R.id.category_icon);
-        saveButton = (TextView) rootView.findViewById(R.id.save_button);
-        deleteButton = (TextView) rootView.findViewById(R.id.delete_button);
+        card = (CardThumbnailView) rootView.findViewById(R.id.bookCard);
+        categoryIcon = (ImageView) rootView.findViewById(R.id.categoryIcon);
+
+        //Initialize the buttons
+        saveButton = (TextView) rootView.findViewById(R.id.saveButton);
+        deleteButton = (TextView) rootView.findViewById(R.id.deleteButton);
+        scanButton = (Button) rootView.findViewById(R.id.scanButton);
+        saveButton.setOnClickListener(this);
+        deleteButton.setOnClickListener(this);
+        scanButton.setOnClickListener(this);
+
+
         ean = (EditText) rootView.findViewById(R.id.ean);
 
         ean.addTextChangedListener(new TextWatcher() {
@@ -85,7 +97,7 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 //User has started typing - warn them that network unavailable
-                if(!isNetworkAvailable()){
+                if (!isNetworkAvailable()) {
                     //Context context = getActivity();
                     CharSequence text = "Network connection unavailable";
                     int duration = Toast.LENGTH_SHORT;
@@ -98,12 +110,12 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
 
             @Override
             public void afterTextChanged(Editable s) {
-                String ean =s.toString();
+                String ean = s.toString();
                 //catch isbn10 numbers
-                if(ean.length()==10 && !ean.startsWith("978")){
-                    ean="978"+ean;
+                if (ean.length() == 10 && !ean.startsWith("978")) {
+                    ean = "978" + ean;
                 }
-                if(ean.length()<13){
+                if (ean.length() < 13) {
                     clearFields();
                     return;
                 }
@@ -111,7 +123,7 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
                 Log.d("afterTextChanged", "Starting book intent");
 
                 //Once we have an ISBN, start a book intent - only if there is network
-                if(isNetworkAvailable()){
+                if (isNetworkAvailable()) {
                     Intent bookIntent = new Intent(getActivity(), BookService.class);
                     bookIntent.putExtra(BookService.EAN, ean);
                     bookIntent.setAction(BookService.FETCH_BOOK);
@@ -121,65 +133,7 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
             }
         });
 
-        rootView.findViewById(R.id.scan_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                if(!isNetworkAvailable()){
-                    //Context context = getActivity();
-                    CharSequence text = "Network connection unavailable";
-                    int duration = Toast.LENGTH_SHORT;
-
-                    Toast toast = Toast.makeText(context, text, duration);
-                    toast.show();
-
-                    return; //Nope out
-                }
-
-                //Initiate book scanner
-                IntentIntegrator integrator = new IntentIntegrator(getActivity());
-                IntentIntegrator fragIntegrator = integrator.forSupportFragment(AddBook.this);
-                fragIntegrator.setPrompt("Scan a book barcode");
-                fragIntegrator.setCaptureActivity(CaptureActivityAnyOrientation.class);
-                fragIntegrator.setOrientationLocked(false);
-                fragIntegrator.initiateScan();
-
-            }
-        });
-
-        rootView.findViewById(R.id.save_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //ean.setText("");
-                String e = ean.getText().toString();
-
-                //Once we have an ISBN, start a book intent
-                Intent bookIntent = new Intent(getActivity(), BookService.class);
-                bookIntent.putExtra(BookService.EAN, e);
-                bookIntent.setAction(BookService.ADD_BOOK);
-                getActivity().startService(bookIntent);
-                AddBook.this.restartLoader();
-
-                //Display toast for confirmation
-                Toast.makeText(context, "Added to Library",
-                        Toast.LENGTH_LONG).show();
-            }
-        });
-
-        rootView.findViewById(R.id.delete_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent bookIntent = new Intent(getActivity(), BookService.class);
-                bookIntent.putExtra(BookService.EAN, ean.getText().toString());
-                bookIntent.setAction(BookService.DELETE_BOOK);
-                getActivity().startService(bookIntent);
-                ean.setText("");
-
-                //Don't display the card
-                card.setVisibility(View.INVISIBLE);
-
-            }
-        });
+        //PUT THE STUFF HERE
 
         if(savedInstanceState!=null){
             ean.setText(savedInstanceState.getString(EAN_CONTENT));
@@ -291,7 +245,7 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
 
         //If there is a category, set the icon
         if(categories != null){
-            rootView.findViewById(R.id.category_icon).setVisibility(View.VISIBLE);
+            rootView.findViewById(R.id.categoryIcon).setVisibility(View.VISIBLE);
         }
 
         //Show the card
@@ -317,13 +271,65 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
         ((TextView) rootView.findViewById(R.id.authors)).setText("");
         ((TextView) rootView.findViewById(R.id.categories)).setText("");
         rootView.findViewById(R.id.bookCover).setVisibility(View.INVISIBLE);
-        rootView.findViewById(R.id.save_button).setVisibility(View.INVISIBLE);
-        rootView.findViewById(R.id.delete_button).setVisibility(View.INVISIBLE);
+        rootView.findViewById(R.id.saveButton).setVisibility(View.INVISIBLE);
+        rootView.findViewById(R.id.deleteButton).setVisibility(View.INVISIBLE);
     }
 
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         activity.setTitle(R.string.scan);
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch(v.getId()){
+            case R.id.scanButton:
+                if (!isNetworkAvailable()) {
+                    CharSequence text = "Network connection unavailable";
+                    int duration = Toast.LENGTH_SHORT;
+
+                    Toast toast = Toast.makeText(this.getActivity(), text, duration);
+                    toast.show();
+
+                    return; //Nope out
+                }
+
+                //Initiate book scanner
+                IntentIntegrator integrator = new IntentIntegrator(getActivity());
+                IntentIntegrator fragIntegrator = integrator.forSupportFragment(AddBook.this);
+                fragIntegrator.setPrompt("Scan a book barcode");
+                fragIntegrator.setCaptureActivity(CaptureActivityAnyOrientation.class);
+                fragIntegrator.setOrientationLocked(false);
+                fragIntegrator.initiateScan();
+                break;
+            case R.id.saveButton:
+                //ean.setText("");
+                String e = ean.getText().toString();
+
+                //Once we have an ISBN, start a book intent
+                bookIntent = new Intent(getActivity(), BookService.class);
+                bookIntent.putExtra(BookService.EAN, e);
+                bookIntent.setAction(BookService.ADD_BOOK);
+                getActivity().startService(bookIntent);
+                AddBook.this.restartLoader();
+
+                //Display toast for confirmation
+                Toast.makeText(this.getActivity(), "Added to Library",
+                        Toast.LENGTH_LONG).show();
+                break;
+            case R.id.deleteButton:
+                bookIntent = new Intent(getActivity(), BookService.class);
+                bookIntent.putExtra(BookService.EAN, ean.getText().toString());
+                bookIntent.setAction(BookService.DELETE_BOOK);
+                getActivity().startService(bookIntent);
+                ean.setText("");
+
+                //Don't display the card
+                card.setVisibility(View.INVISIBLE);
+                break;
+            default:
+                break;
+        }
     }
 }
